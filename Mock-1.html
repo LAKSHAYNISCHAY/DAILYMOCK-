@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Modern Quiz Application</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #1e2a38;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .timer {
+            font-size: 1.6em;
+            font-weight: 600;
+        }
+        main {
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        h2 {
+            color: #3498db;
+            font-size: 2.2em;
+            margin: 0 0 20px;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 10px;
+            font-weight: 600;
+        }
+        .question-slide {
+            margin-bottom: 20px;
+        }
+        .option {
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 15px;
+            cursor: pointer;
+            transition: background 0.3s, border 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .option:hover {
+            background: #bdc3c7;
+        }
+        .option.selected {
+            background: #2ecc71;
+            border-color: #27ae60;
+            color: white;
+        }
+        .button-container {
+            text-align: center;
+        }
+        button {
+            background: #3498db;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 1.1em;
+            padding: 14px 30px;
+            margin: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .score-card, .answer-sheet {
+            display: none;
+        }
+        .score-card.active, .answer-sheet.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+        .chart-container {
+            margin: 20px 0;
+        }
+        .scrollable {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .answer-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+        }
+        .question {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .right-answer, .user-answer {
+            font-size: 1em;
+            margin: 5px 0;
+        }
+        .right-answer {
+            color: #27ae60;
+        }
+        .user-answer {
+            color: #e74c3c;
+        }
+        .bar-line {
+            border-top: 2px solid #3498db;
+            margin: 15px 0;
+        }
+        footer {
+            background-color: #1e2a38;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.2);
+            font-size: 0.9em;
+        }
+        footer a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Advanced Modern Quiz</h1>
+        <div class="timer" id="timer">00:00</div>
+    </header>
+    <main>
+        <div class="container" id="quiz-container">
+            <h2>Quiz</h2>
+            <div class="question-slide" id="question-slide">
+                <!-- Quiz questions will be inserted here -->
+            </div>
+            <div class="button-container">
+                <button id="back-btn">Back</button>
+                <button id="next-btn">Next</button>
+                <button id="submit-btn">Submit</button>
+            </div>
+        </div>
+        <div id="score-card" class="score-card scrollable">
+            <h2>Score Card</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Correct</th>
+                        <th>Incorrect</th>
+                        <th>Unattempted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="correct-count">0</td>
+                        <td id="incorrect-count">0</td>
+                        <td id="unattempted-count">0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" id="overall-total">Overall Total Score: 0</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="chart-container">
+                <canvas id="bar-chart"></canvas>
+                <canvas id="pie-chart"></canvas>
+            </div>
+            <div class="button-container">
+                <button id="download-pdf">Download PDF</button>
+                <button id="retry-btn">Retry</button>
+            </div>
+        </div>
+        <div id="answer-sheet" class="answer-sheet scrollable">
+            <h2>Answer Sheet</h2>
+            <div id="answer-sheet-content"></div>
+            <div class="button-container">
+                <button id="retry-all-btn">Retry All</button>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Advanced Modern Quiz Application. All rights reserved. <a href="https://t.me/currentaffairsupdatz" target="_blank">Join our Telegram Channel</a></p>
+    </footer>
+
+    <script>
+        let questions = [];
+        let userAnswers = [];
+        let currentQuestionIndex = 0;
+        let timerInterval;
+
+        function startTimer(duration) {
+            let timer = duration;
+            const display = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                const minutes = Math.floor(timer / 60);
+                const seconds = timer % 60;
+                display.textContent = `${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function displayQuestion(index) {
+            const question = questions[index];
+            if (question) {
+                document.getElementById('question-slide').innerHTML = `
+                    <div class="question">${question.Question}</div>
+                    ${question.Options.map((option, i) => `
+                        <div class="option">${option}</div>
+                    `).join('')}
+                `;
+                setupOptionListeners();
+            }
+        }
+
+        function setupOptionListeners() {
+            document.querySelectorAll('.option').forEach((option, index) => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    userAnswers[currentQuestionIndex] = option.textContent;
+                });
+            });
+        }
+
+        function calculateScore() {
+            stopTimer();
+            let correctScore = 0;
+            let incorrectScore = 0;
+            let unattemptedScore = 0;
+            questions.forEach((q, i) => {
+                if (userAnswers[i] === q.CorrectAnswer) {
+                    correctScore++;
+                } else if (userAnswers[i]) {
+                    incorrectScore += 0.5;
+                } else {
+                    unattemptedScore++;
+                }
+            });
+
+            const totalScore = correctScore - incorrectScore;
+
+            document.getElementById('correct-count').textContent = correctScore;
+            document.getElementById('incorrect-count').textContent = incorrectScore;
+            document.getElementById('unattempted-count').textContent = unattemptedScore;
+            document.getElementById('overall-total').textContent = `Overall Total Score: ${totalScore}`;
+
+            displayCharts(correctScore, incorrectScore, unattemptedScore);
+            document.getElementById('score-card').classList.add('active');
+            displayAnswerSheet();
+        }
+
+        function displayAnswerSheet() {
+            const content = questions.map((q, i) => `
+                <div class="answer-section">
+                    <div class="question">Question: ${q.Question}</div>
+                    <div class="right-answer">Right Answer: ${q.CorrectAnswer}</div>
+                    <div class="explanation">Explanation: <em>Explanation for the correct answer.</em></div>
+                    <div class="user-answer">Your Answer: ${userAnswers[i] || 'Not Answered'}</div>
+                    <div class="bar-line"></div>
+                </div>
+            `).join('');
+            document.getElementById('answer-sheet-content').innerHTML = content;
+            document.getElementById('answer-sheet').classList.add('active');
+        }
+
+        function displayCharts(correctAnswers, incorrectAnswers, unattemptedAnswers) {
+            const ctxBar = document.getElementById('bar-chart').getContext('2d');
+            const ctxPie = document.getElementById('pie-chart').getContext('2d');
+
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Correct', 'Incorrect', 'Unattempted'],
+                    datasets: [{
+                        data: [correctAnswers, incorrectAnswers, unattemptedAnswers],
+                        backgroundColor: ['#2ecc71', '#e74c3c', '#95a5a6'],
+                        borderColor: ['#27ae60', '#c0392b', '#7f8c8d'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels: ['Correct', 'Incorrect', 'Unattempted'],
+                    datasets: [{
+                        data: [correctAnswers, incorrectAnswers, unattemptedAnswers],
+                        backgroundColor: ['#2ecc71', '#e74c3c', '#95a5a6']
+                    }]
+                }
+            });
+        }
+
+        function fetchQuestions() {
+            Papa.parse('https://raw.githubusercontent.com/LAKSHAYNISCHAY/Trial/main/EDUTERIAPAGE1.CSV', {
+                download: true,
+                header: true,
+                complete: (results) => {
+                    questions = results.data.map(row => ({
+                        Question: row['Question'],
+                        Options: [row['Option a'], row['Option b'], row['Option c'], row['Option d']],
+                        CorrectAnswer: row['Correct Answer']
+                    }));
+                    userAnswers = new Array(questions.length).fill(null);
+                    displayQuestion(currentQuestionIndex);
+                    startTimer(questions.length * 60);
+                }
+            });
+        }
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion(currentQuestionIndex);
+            } else {
+                calculateScore();
+            }
+        });
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion(currentQuestionIndex);
+            }
+        });
+
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            calculateScore();
+        });
+
+        document.getElementById('retry-btn').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('retry-all-btn').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('download-pdf').addEventListener('click', () => {
+            alert('Download PDF functionality not implemented.');
+        });
+
+        fetchQuestions();
+    </script>
+</body>
+</html>
